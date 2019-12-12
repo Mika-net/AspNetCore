@@ -13,16 +13,14 @@ namespace Wasm.Performance.Driver
 {
     class SeleniumServer : IDisposable
     {
-        private SeleniumServer(Process process, Uri uri)
+        private SeleniumServer(Process process)
         {
             SeleniumProcess = process;
-            Uri = uri;
         }
 
-        public Uri Uri { get; }
         private Process SeleniumProcess { get; }
 
-        public static async ValueTask<SeleniumServer> StartAsync(int port = 9001)
+        public static SeleniumServer Start(int port = 4444)
         {
             var outputLock = new object();
 
@@ -61,39 +59,48 @@ namespace Wasm.Performance.Driver
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
 
-            var uri = await EnsureInitialized(port);
-
-            return new SeleniumServer(process, uri);
+            return new SeleniumServer(process);
         }
 
-        static async ValueTask<Uri> EnsureInitialized(int port)
+        public static async ValueTask<Uri> WaitForLaunchAsync(int port)
         {
+            var uri = new UriBuilder("http", "localhost", port, "/wd/hub/").Uri;
             var httpClient = new HttpClient
             {
+                BaseAddress = uri,
                 Timeout = TimeSpan.FromSeconds(1),
             };
 
-            var uri = new UriBuilder("http", "localhost", port, "/wd/hub").Uri;
+            Console.WriteLine($"Attempting to connect to Selenium Server running at {uri}");
 
             const int MaxRetries = 30;
             var retries = 0;
 
-            while (true)
+            while (retries < MaxRetries)
             {
                 retries++;
                 await Task.Delay(1000);
                 try
                 {
-                    var response = await httpClient.GetAsync(uri);
+                    var response = await httpClient.GetAsync("status");
                     if (response.StatusCode == HttpStatusCode.OK)
                     {
+                        Console.WriteLine("Connected to Selenium");
                         return uri;
                     }
                 }
-                catch when (retries < MaxRetries)
+                catch (Exception ex)
                 {
+                    Console.WriteLine(ex.Message);
+
+                    if (retries == MaxRetries)
+                    {
+                        throw;
+                    }
                 }
             }
+
+            throw new Exception("This shouldn't happen");
         }
 
         public void Dispose()

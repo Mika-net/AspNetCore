@@ -34,8 +34,10 @@ namespace Wasm.Perforrmance.Driver
 
         public static async Task Main()
         {
-            using var seleniumServer = await SeleniumServer.StartAsync();
-            using var browser = CreateBrowser(seleniumServer.Uri);
+            var port = 4444;
+            var seleniumUri = await SeleniumServer.WaitForLaunchAsync(port);
+
+            using var browser = CreateBrowser(seleniumUri);
             using var testApp = RunTestApp();
 
             var address = testApp.Services.GetRequiredService<IServer>()
@@ -103,14 +105,9 @@ namespace Wasm.Perforrmance.Driver
 
         static IHost RunTestApp()
         {
-            var testAppRoot = typeof(Program).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
-                .First(f => f.Key == "TestAppLocation")
-                .Value;
-
             var args = new[]
             {
                 "--urls", "http://127.0.0.1:0",
-                "--contentroot", testAppRoot,
                 "--applicationpath", typeof(TestApp.Startup).Assembly.Location,
             };
 
@@ -153,14 +150,13 @@ namespace Wasm.Perforrmance.Driver
         {
             var options = new ChromeOptions();
 
-
             if (RunHeadlessBrowser)
             {
                 options.AddArgument("--headless");
             }
 
-            // Log errors
             options.SetLoggingPreference(LogType.Browser, LogLevel.All);
+
 
             var attempt = 0;
             const int MaxAttempts = 3;

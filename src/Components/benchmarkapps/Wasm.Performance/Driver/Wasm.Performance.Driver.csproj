@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultNetCoreTargetFramework)</TargetFramework>
-    <TargetFramework Condition="'$(BenchmarksTargetFramework)' != ''">$(BenchmarksTargetFramework)</TargetFramework>
+    <!-- Intentionally pinned this to .NET Core 3.1 since that's the supported version in the docker image -->
+    <TargetFramework>netcoreapp3.1</TargetFramework>
 
     <UseLatestAspNetCoreReference>true</UseLatestAspNetCoreReference>
     <OutputType>exe</OutputType>
@@ -16,6 +16,8 @@
     <Reference Include="Selenium.WebDriver" />
     <ProjectReference Include="..\..\..\Blazor\DevServer\src\Microsoft.AspNetCore.Blazor.DevServer.csproj" />
     <ProjectReference Include="..\TestApp\Wasm.Perforrmance.TestApp.csproj" />
+
+    <Content Include="appSettings.json" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
